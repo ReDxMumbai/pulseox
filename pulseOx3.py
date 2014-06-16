@@ -90,7 +90,7 @@ while(True):
   irMinimas = []
 
   # step 1: listen for the 'finished collecting' character on the serial monitor from the teensy...
-  time.sleep(1)
+  time.sleep(timeToBeScanned-1)
   char = teensy.readline().strip()
   # print(char)
   if (char == 'd'):
@@ -121,61 +121,61 @@ while(True):
 	  
     print "data has been acquired, now processing begins..."
   
-  
-  '''
   # step 3: find maxima, minima for both red and IR. find difference as HR
   ### convert to numpy arrays...
-  redData = numpy.array(redData)
-  irData = numpy.array(irData)
+  if (len(redData) == 0):
+    print "data is in some messed up format"
+  else:
+    redData = numpy.array(redData)
+    irData = numpy.array(irData)
   
-  # we're also going to smooth these before making them numpy arrays.
-  smoothWindow = 21		# make sure this is always an odd number
-  plotCutoffs = int(smoothWindow/2)
-  redDataSmoothed = smooth(numpy.array(redData), window_len=smoothWindow)[plotCutoffs:-plotCutoffs]
-  irDataSmoothed = smooth(numpy.array(irData), window_len=smoothWindow)[plotCutoffs:-plotCutoffs]
+    # we're also going to smooth these before making them numpy arrays.
+    smoothWindow = 11		# make sure this is always an odd number
+    plotCutoffs = int(smoothWindow/2)
+    redDataSmoothed = smooth(numpy.array(redData), window_len=smoothWindow)[plotCutoffs:-plotCutoffs]
+    irDataSmoothed = smooth(numpy.array(irData), window_len=smoothWindow)[plotCutoffs:-plotCutoffs]
 
-  # REMEMBER THAT THE DATA IS int COMING FROM THE ADC
-  # also remember that argrelextrema returns the indices of the extremas, not the extremas themselves
-  ### finding the maximas...
-  argrelOrder = 30				# set the order/window for maxima/minima peak finding
-  redMaximas = scipy.signal.argrelmax(redDataSmoothed, order=argrelOrder)[0]
-  irMaximas = scipy.signal.argrelmax(irDataSmoothed, order=argrelOrder)[0]
+    # REMEMBER THAT THE DATA IS int COMING FROM THE ADC
+    # also remember that argrelextrema returns the indices of the extremas, not the extremas themselves
+    ### finding the maximas...
+    argrelOrder = 30				# set the order/window for maxima/minima peak finding
+    redMaximas = scipy.signal.argrelmax(redDataSmoothed, order=argrelOrder)[0]
+    irMaximas = scipy.signal.argrelmax(irDataSmoothed, order=argrelOrder)[0]
 
-  ### finding the minimas...
-  redMinimas = scipy.signal.argrelmin(redDataSmoothed, order=argrelOrder)[0]
-  irMinimas = scipy.signal.argrelmin(irDataSmoothed, order=argrelOrder)[0]
+    ### finding the minimas...
+    redMinimas = scipy.signal.argrelmin(redDataSmoothed, order=argrelOrder)[0]
+    irMinimas = scipy.signal.argrelmin(irDataSmoothed, order=argrelOrder)[0]
+
+    # step 6: plot the data that's come on now, but in such a way that the subsequent data will be added
+    plt.ion() # set plot to animated  
+	
+    t = numpy.arange(len(redData))
   
-  hr = redMaximas[0] - irMaximas[0]
-  print "heart rate is:"
-  print hr
-  
-  # step 4: calculate ratio of the AC peaks only ratio of (maxima-minima) for both wavelengths = o2sat
-  o2sat = (log(redMaximas[0:].astype(float)) / log(redMinimas[0:].astype(float))).mean()
-  print "o2 sat is:"
-  print o2sat
-  
-  # step 5: append the PPG data to one file. append the HR and pulseOx to another file.
-  # read out the HR and pulseOx on the command line/terminal
-  '''
+    plt.clf()
+    '''
+    line, = plt.plot(redData, 'k--')
+    line, = plt.plot(redDataSmoothed, 'r')
+    line, = plt.plot(t[redMaximas], redData[redMaximas], 'ko')
+    line, = plt.plot(t[redMinimas], redData[redMinimas], 'bo')
+	'''
+    line, = plt.plot(irData[10:], 'b--')
+    line, = plt.plot(irDataSmoothed[10:], 'g')
+    line, = plt.plot(t[irMaximas-10], irData[irMaximas], 'ko')
+    line, = plt.plot(t[irMinimas-10], irData[irMinimas], 'bo')
+	
+    # line, = plt.plot(irData)
+    
+    # print numpy.arange(scansRun*samplingFreq, (scansRun+1)*samplingFreq)
+    # print len(numpy.arange(scansRun*samplingFreq, (scansRun+1)*samplingFreq))
+    # line.set_xdata(numpy.arange(scansRun*len(redData), (scansRun+1)*len(redData)))
+	
+    # line.set_xdata(numpy.append(line.get_xdata(), numpy.arange(scansRun*len(redData), (scansRun+1)*len(redData))))
+    # line.set_ydata(numpy.append(line.get_ydata(), redData))  # update the data
+    plt.draw() # update the plot
+
+    scansRun += 1	# update the variable
+    # print line.get_xdata()
   
   # REPEAT
   print "REPEAT sending acquire command"
   teensy.write('c')
-  
-  # step 6: plot the data that's come on now, but in such a way that the subsequent data will be added
-  plt.ion() # set plot to animated  
-  
-  plt.clf()
-  line, = plt.plot(redData)
-  # line, = plt.plot(irData)
-    
-  # print numpy.arange(scansRun*samplingFreq, (scansRun+1)*samplingFreq)
-  # print len(numpy.arange(scansRun*samplingFreq, (scansRun+1)*samplingFreq))
-  # line.set_xdata(numpy.arange(scansRun*len(redData), (scansRun+1)*len(redData)))
-	
-  # line.set_xdata(numpy.append(line.get_xdata(), numpy.arange(scansRun*len(redData), (scansRun+1)*len(redData))))
-  # line.set_ydata(numpy.append(line.get_ydata(), redData))  # update the data
-  plt.draw() # update the plot
-
-  scansRun += 1	# update the variable
-  # print line.get_xdata()

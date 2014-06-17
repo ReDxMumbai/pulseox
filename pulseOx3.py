@@ -5,8 +5,8 @@ import serial, numpy, scipy.signal, time, math
 import matplotlib.pyplot as plt
 
 # variables and constants...
-timeToBeScanned = 2		# time in seconds for which EACH wavelength shall be scanned
-samplingFreq = 100		# number of samples per second of the acquisition in the teensy
+timeToBeScanned = 3		# time in seconds for which EACH wavelength shall be scanned
+samplingFreq = 100.0	# number of samples per second of the acquisition in the teensy
 scansRun = 0			# this will count the number of times a "scan" has been run, and accordingly update the plotted time axis
 
 ### function definitions...
@@ -109,7 +109,7 @@ while(True):
     teensy.write('t')
   
     # step 2: collect the data real quick from the teensy over serial..
-    for i in  range(0,samplingFreq*timeToBeScanned):
+    for i in  range(0, int(samplingFreq*timeToBeScanned)):
       data = teensy.readline()
       # serialData.append(data)
       # print(str(i) + ": " + data)
@@ -154,11 +154,13 @@ while(True):
     redMinimas = scipy.signal.argrelmin(redDataSmoothed, order=argrelOrder)[0]
     irMinimas = scipy.signal.argrelmin(irDataSmoothed, order=argrelOrder)[0]
 
-    # if len(redMaximas) > 1:
-      # hr = ((float)timeToBeScanned/(float)samplingFreq)*(redMaximas[1].astype(float) - redMaximas[0].astype(float))
-      # print "heart rate is:"
-      # print hr
-  
+    t = numpy.arange(len(redData))
+	
+    if len(redMaximas) > 1:
+      hrMultiplier = 60.0*samplingFreq
+      hr = hrMultiplier / (redMaximas[1] - redMaximas[0])
+      print hr
+      
     # step 4: calculate ratio of the AC peaks only ratio of (maxima-minima) for both wavelengths = o2sat  
     lcm = min(len(redMaximas), len(irMaximas), len(redMinimas), len(irMinimas))
     if lcm > 0:  
@@ -174,8 +176,6 @@ while(True):
     # step 6: plot the data that's come on now, but in such a way that the subsequent data will be added
     plt.ion() # set plot to animated  
 	
-    t = numpy.arange(len(redData))
-  
     plt.clf()
     
 	# leaving the first 10 points out because they are a "rise" feature whih prevents the smaller PPG signals from being seen...
@@ -190,8 +190,8 @@ while(True):
     
     line, = plt.plot(irData[10:], 'b--')
     line, = plt.plot(irDataSmoothed[10:], 'g')
-    line, = plt.plot(t[irMaximas-10], irData[irMaximas], 'ko')
-    line, = plt.plot(t[irMinimas-10], irData[irMinimas], 'bo')
+    line, = plt.plot(t[irMaximas-10], irDataSmoothed[irMaximas], 'ko')
+    line, = plt.plot(t[irMinimas-10], irDataSmoothed[irMinimas], 'bo')
     
     # line, = plt.plot(irData)
     

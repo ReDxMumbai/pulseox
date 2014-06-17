@@ -72,6 +72,14 @@ print("opening port..")
 teensy = serial.Serial(3, 115200, timeout=1)		# open serial port, needs to be one less than what Arduino IDE shows (COMx)
 print "port open"
 
+### open file for saving to...
+import time, os
+
+count = 0
+while os.path.exists("%s-%s.txt" % (time.strftime("%Y%m%d"), count)):
+  count += 1
+fh = open("%s-%s.txt" % (time.strftime("%Y%m%d"), count), "w")
+
 # Tell the teensy to collect information (red/IR for a time period of 1s each..
 print "sending acquire data command..."
 teensy.write('c')
@@ -146,23 +154,45 @@ while(True):
     redMinimas = scipy.signal.argrelmin(redDataSmoothed, order=argrelOrder)[0]
     irMinimas = scipy.signal.argrelmin(irDataSmoothed, order=argrelOrder)[0]
 
+    # if len(redMaximas) > 1:
+      # hr = ((float)timeToBeScanned/(float)samplingFreq)*(redMaximas[1].astype(float) - redMaximas[0].astype(float))
+      # print "heart rate is:"
+      # print hr
+  
+    # step 4: calculate ratio of the AC peaks only ratio of (maxima-minima) for both wavelengths = o2sat  
+    lcm = min(len(redMaximas), len(irMaximas), len(redMinimas), len(irMinimas))
+    if lcm > 0:  
+	  # only use numpy.log to calculate log and other mathematical operations on numpy arrays
+      o2sat = (numpy.log((redMaximas[0] - redMinimas[0]).astype(float)) / numpy.log((irMaximas[0] - irMinimas[0]).astype(float))).mean()
+      print "o2 sat is:"
+      print o2sat
+      print>>fh, o2sat
+    
+    # step 5: append the PPG data to one file. append the HR and pulseOx to another file.
+    # read out the HR and pulseOx on the command line/terminal.
+	
     # step 6: plot the data that's come on now, but in such a way that the subsequent data will be added
     plt.ion() # set plot to animated  
 	
     t = numpy.arange(len(redData))
   
     plt.clf()
+    
+	# leaving the first 10 points out because they are a "rise" feature whih prevents the smaller PPG signals from being seen...
+	### RED data...
     '''
-    line, = plt.plot(redData, 'k--')
-    line, = plt.plot(redDataSmoothed, 'r')
-    line, = plt.plot(t[redMaximas], redData[redMaximas], 'ko')
-    line, = plt.plot(t[redMinimas], redData[redMinimas], 'bo')
-	'''
+    line, = plt.plot(redData[10:], 'k--')
+    line, = plt.plot(redDataSmoothed[10:], 'r')
+    line, = plt.plot(t[redMaximas-10], redData[redMaximas], 'ko')
+    line, = plt.plot(t[redMinimas-10], redData[redMinimas], 'bo')
+    '''
+	### IR data...
+    
     line, = plt.plot(irData[10:], 'b--')
     line, = plt.plot(irDataSmoothed[10:], 'g')
     line, = plt.plot(t[irMaximas-10], irData[irMaximas], 'ko')
     line, = plt.plot(t[irMinimas-10], irData[irMinimas], 'bo')
-	
+    
     # line, = plt.plot(irData)
     
     # print numpy.arange(scansRun*samplingFreq, (scansRun+1)*samplingFreq)

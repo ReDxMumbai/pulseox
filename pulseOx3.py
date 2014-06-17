@@ -160,6 +160,7 @@ while(True):
       hrMultiplier = 60.0*samplingFreq
       hr = hrMultiplier / (redMaximas[1] - redMaximas[0])
       print hr
+	  print>>fh, hr		# print HR to the data file
       
     # step 4: calculate ratio of the AC peaks only ratio of (maxima-minima) for both wavelengths = o2sat  
     lcm = min(len(redMaximas), len(irMaximas), len(redMinimas), len(irMinimas))
@@ -168,7 +169,7 @@ while(True):
       o2sat = (numpy.log((redMaximas[0] - redMinimas[0]).astype(float)) / numpy.log((irMaximas[0] - irMinimas[0]).astype(float))).mean()
       print "o2 sat is:"
       print o2sat
-      print>>fh, o2sat
+      print>>fh, o2sat	# print o2sat to the data file
     
     # step 5: append the PPG data to one file. append the HR and pulseOx to another file.
     # read out the HR and pulseOx on the command line/terminal.
